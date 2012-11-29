@@ -477,3 +477,16 @@
     (draw-my-stuff canvas)))
 
 (define stop-drawing (f))
+
+
+
+(define (generate-marker id)
+  (define ids (vector #x10 #x17 #x09 #x0e))
+  (for/list ([y (in-range 0 5)])
+    (define index (bitwise-and (arithmetic-shift id (- (* 2 (- 4 y))))
+                               3))
+    (define val (vector-ref ids index))
+    (for/list ([x (in-range 0 5)])
+      (if (> (bitwise-and (arithmetic-shift val (- (- 4 x))) 1) 0)
+          1
+          0))))
