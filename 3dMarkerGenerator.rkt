@@ -560,6 +560,13 @@
       (refresh))
     (super-new (style '(gl no-autoclear)))))
 
+(define gl-canvas #f)
+(define gl-bm #f)
+(define gl-bitmap (make-gl-bitmap 640 480 (new gl-config%)))
+(define dc (send gl-bitmap make-dc))
+(define gl-context (send dc get-gl-context))
+
+
  (define (gl-run)
     (let* ((frame (new frame% (label "OpenGL Window")
                               (width 640)
@@ -569,6 +576,7 @@
         (display "Error: OpenGL context failed to initialize")
         (newline)
         (exit))
+      (set! gl-canvas glcanvas)
       (send frame show #t)))
 
 (define *textures* '())
@@ -666,7 +674,7 @@
   (set! *xrot* 0)
   (set! *yrot* 0)
   (set! *zrot* 0)
-  (set! *z* -5)
+  (set! *z* -1.2)
   (set! *blend* #f)
   (set! *tex* 0))
 
@@ -686,14 +694,14 @@
   (glBindTexture GL_TEXTURE_2D (get-texture *tex*))
   (glBegin GL_QUADS)
   ;; front
-  (glTexCoord2i 0 0)
-  (glVertex3i -1 -1 0)
-  (glTexCoord2i 1 0)
-  (glVertex3i 1 -1 0)
-  (glTexCoord2i 1 1)
-  (glVertex3i 1 1 0)
   (glTexCoord2i 0 1)
-  (glVertex3i -1 1 0)
+  (glVertex3f -0.5 -0.5 0.0)
+  (glTexCoord2i 1 1)
+  (glVertex3f 0.5 -0.5 0.0)
+  (glTexCoord2i 1 0)
+  (glVertex3f 0.5 0.5 0.0)
+  (glTexCoord2i 0 0)
+  (glVertex3f -0.5 0.5 0.0)
   (glEnd)
   (glFlush))
 
@@ -724,7 +732,38 @@
 
 (gl-run)
 
+(set! gl-bm (send gl-canvas make-bitmap 640 480))
+(send gl-bitmap save-file "result.png" 'png)
 
+
+(send gl-context call-as-current
+      (lambda ()
+        (let ((res *texture*))
+          ;; Same texture, three smoothing styles...
+          (init-textures 3)
+          (unless (gl-load-texture (list-ref res 2) (list-ref res 0) (list-ref res 1)
+                                   GL_NEAREST GL_NEAREST 0)
+            (error "Couldn't load texture"))
+          (unless (gl-load-texture (list-ref res 2) (list-ref res 0) (list-ref res 1)
+                                   GL_LINEAR GL_LINEAR 1)
+            (error "Couldn't load texture"))
+          (unless (gl-load-texture (list-ref res 2) (list-ref res 0) (list-ref res 1)
+                                   GL_LINEAR GL_LINEAR_MIPMAP_NEAREST 2)
+            (error "Couldn't load texture"))
+          ;; Set-up alpha blending 50% transparency
+          (glColor4d 1 1 1 0)
+          (glBlendFunc GL_SRC_ALPHA GL_ONE)
+          (glEnable GL_BLEND)
+          ;; Standard Init
+          (glEnable GL_TEXTURE_2D)
+          (glShadeModel GL_SMOOTH)
+          (glClearColor 0.0 0.0 0.0 0.5)
+          (glClearDepth 1)
+          (glEnable GL_DEPTH_TEST)
+          (glDepthFunc GL_LEQUAL)
+          (glHint GL_PERSPECTIVE_CORRECTION_HINT GL_NICEST))))
+
+(send gl-context call-as-current my-gl-draw)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -815,6 +854,4 @@
 
 (define markers (map generate-marker (range 0 80)))
 (define bm (visualize-markers (map generate-marker (range 0 100)) 100 100 0.2))
-
-
 ;; what about opengl and synthetic images?
