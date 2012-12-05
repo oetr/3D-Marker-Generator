@@ -1,3 +1,119 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Markers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define (generate-marker id)
+  (define ids (vector #x10 #x17 #x09 #x0e))
+  (for/vector ([y (in-range 0 5)])
+    (define index (bitwise-and (arithmetic-shift id (- (* 2 (- 4 y))))
+                               3))
+    (define val (vector-ref ids index))
+    (for/vector ([x (in-range 0 5)])
+      (if (> (bitwise-and (arithmetic-shift val (- (- 4 x))) 1) 0)
+          1
+          0))))
+
+(define (matrix-rotate a-matrix (direction 'ccw))
+  ;; do only ccw rotation for now!
+  (define rows (vector-length a-matrix))
+  (define cols (vector-length (vector-ref a-matrix 0)))
+  (define result (make-matrix rows cols))
+  (define (find-new-row row col) col)
+  (define (find-new-col row col) (+ (* row -1) (- cols 1)))
+  (for* ([col (in-range 0 cols)]
+         [row (in-range 0 rows)])
+    (matrix-set! result
+                 (find-new-row row col)
+                 (find-new-col row col)
+                 (matrix-ref a-matrix row col)))
+  result)
+
+(define (draw-marker a-matrix width height)
+  (define target (make-bitmap width height))
+  (define dc (new bitmap-dc% [bitmap target]))
+  (send dc set-pen "white" 0 'transparent)
+  (send dc set-brush "white" 'solid)
+  (send dc draw-rectangle 0 0 width height)
+  (define rows (vector-length a-matrix))
+  (define cols (vector-length (vector-ref a-matrix 0)))
+  (define unit-x (/ width (+ cols 2.0)))
+  (define unit-y (/ height (+ rows 2.0)))
+  (for* ([row (in-range 0 rows)]
+         [col (in-range 0 cols)])
+    (if (zero? (matrix-ref a-matrix row col))
+        (send dc set-brush "white" 'solid)
+        (send dc set-brush "black" 'solid))
+    (send dc draw-rectangle
+          (+ unit-x (* col unit-x))
+          (+ unit-y (* row unit-y)) unit-x unit-y))
+  target)
+
+
+(define (visualize-markers markers width height (separator 0.2))
+  (define size (inexact->exact (ceiling (sqrt (length markers)))))
+  (define W (inexact->exact (round (+ (* size width)
+                                      (* (+ size 1) (* separator width))))))
+  (define H (inexact->exact (round (+ (* size height)
+                                      (* (+ size 1) (* separator height))))))
+  (define frame (new frame%
+                     [label "Example"]
+                     [width W]
+                     [height H]))
+  (define canvas (new canvas% [parent frame]
+                      [min-width W]
+                      [min-height H]))
+  (define c-dc (send canvas get-dc))
+  (define bm (send canvas make-bitmap W H))
+  (define dc (send bm make-dc))
+  (send frame show #t)
+  (sleep/yield 0.1)
+  ;; make the background black
+  ;;(send dc set-smoothing 'smoothed)
+  (send dc set-brush "black" 'solid)
+  (send dc draw-rectangle 0 0 W H)
+  ;; draw as many markers as they fit
+  (for ([marker (in-list markers)]
+        [n (in-range 0 (length markers))])
+    (define row (quotient n size))
+    (define col (remainder n size))
+    (define y-offset (+ (* height separator) (* row (+ height (* height separator)))))
+    (define x-offset (+ (* width separator) (* col (+ width (* width separator)))))
+    (send dc draw-bitmap (draw-marker marker width height) x-offset y-offset))
+  (send c-dc draw-bitmap bm 0 0)
+  (send bm save-file "test.png" 'png)
+  bm)
+
+(define (draw-markers markers width height (separator 0.2))
+  (define size (inexact->exact (ceiling (sqrt (length markers)))))
+  (define W (inexact->exact (round (+ (* size width)
+                                      (* (+ size 1) (* separator width))))))
+  (define H (inexact->exact (round (+ (* size height)
+                                      (* (+ size 1) (* separator height))))))
+  (define bm (make-bitmap W H))
+  (define dc (send bm make-dc))
+  ;; make the background black
+  ;;(send dc set-smoothing 'smoothed)
+  (send dc set-brush "black" 'solid)
+  (send dc draw-rectangle 0 0 W H)
+  ;; draw as many markers as they fit
+  (for ([marker (in-list markers)]
+        [n (in-range 0 (length markers))])
+    (define row (quotient n size))
+    (define col (remainder n size))
+    (define y-offset (+ (* height separator) (* row (+ height (* height separator)))))
+    (define x-offset (+ (* width separator) (* col (+ width (* width separator)))))
+    (send dc draw-bitmap (draw-marker marker width height) x-offset y-offset))
+  bm)
+
+
+
+
+(define markers (map generate-marker (range 0 80)))
+;;(define bm (visualize-markers (map generate-marker (range 0 100)) 100 100 0.2))
+(define bm (draw-markers (map generate-marker (range 0 100)) 100 100 0.2))
+;; what about opengl and synthetic images?
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require sgl sgl/gl-vectors)
 (require sgl/gl-vectors)
@@ -177,6 +293,7 @@
   ;; turn blending on/off
   (if *blend* (glEnable GL_BLEND) (glDisable GL_BLEND))
   ;; draw cube.
+  
   (glLoadIdentity)
   (glTranslated 0 0 *z*)
   (glRotated *xrot* 1 0 0)
@@ -196,19 +313,6 @@
   (glEnd)
   (glFlush))
 
-(define gl-config (new gl-config%))
-(define gl-bm (make-gl-bitmap 640 480 gl-config))
-(define dc (new bitmap-dc% [bitmap gl-bm]))
-(define gl-context (send dc get-gl-context))
-(define pixel-bytes (make-bytes (* 640 480 4)))
-(send gl-bm get-argb-pixels 0 0 640 480 pixel-bytes)
-(send gl-context call-as-current my-gl-init)
-(send gl-context call-as-current my-gl-draw)
-(send gl-context swap-buffers)
-
-(send gl-bm save-file "result.png" 'png)
-
-
 ;; Our user interaction variables
 (define *xrot* 0)
 (define *yrot* 0)
@@ -221,41 +325,22 @@
   (set! *xrot* 0)
   (set! *yrot* 0)
   (set! *zrot* 0)
-  (set! *z* -1.2)
+  (set! *z* -3.0)
   (set! *blend* #f)
   (set! *tex* 0))
 
-
-
-(define gl-canvas #f)
-
-(define c-dc #f)
-(define bm #f)
-(define dc #f)
-
-(define (gl-run)
+(define (gl-run W H)
   (let* ((frame (new frame% (label "OpenGL Window")
-                     (width 640)
-                     (height 480)))
+                     (width W)
+                     (height H)))
          (glcanvas (new glcanvas% (parent frame)
-                        (min-width 640)
-                        (min-height 480))))
-    
+                        (min-width W)
+                        (min-height H))))
     (unless (send (send (send glcanvas get-dc) get-gl-context) ok?)
       (display "Error: OpenGL context failed to initialize")
       (newline)
       (exit))
-    (send frame show #t)
-    (define gl-config (new gl-config%))
-    (define gl-bm (make-gl-bitmap 640 480 gl-config))
-    (define dc (new bitmap-dc% [bitmap gl-bm]))
-    (define gl-context (send dc get-gl-context))
-
-    (set! c-dc (send glcanvas get-dc))
-    (set! bm (send glcanvas make-bitmap 640 480))
-    (set! dc (send bm make-dc))
-    (set! gl-canvas glcanvas)))
-
+    (send frame show #t)))
 
 (clear-key-mappings)
 ;; Move forward
@@ -275,119 +360,92 @@
 (add-key-mapping #\r (lambda () (reset-vars!)))
 (add-key-mapping #\s (lambda () (reset-vars!)))
 
-
 (define (my-gl-init)
-  (glLoadIdentity)
-  (glOrtho -1.0 1.0 -1.0 1.0 -1.0 1.0))
+  (glShadeModel GL_SMOOTH)
+  (glClearColor 0.0 0.0 0.0 0.5)
+  (glClearDepth 1)
+  (glEnable GL_DEPTH_TEST)
+  (glDepthFunc GL_LEQUAL)
+  (glHint GL_PERSPECTIVE_CORRECTION_HINT GL_NICEST))
+
+(define x-rot 0.0)
+(define y-rot 0.0)
+(define z-rot -10.0)
 
 (define (my-gl-draw)
-  (glClear GL_COLOR_BUFFER_BIT)
-  (glBegin GL_POLYGON)
-  (glVertex2f -0.5 -0.5)
-  (glVertex2f -0.5 0.5)
-  (glVertex2f 0.5 0.5)
-  (glVertex2f 0.5 -0.5)
-  (glEnd)
-  (glFlush))
+  (glClear (bitwise-ior GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+  (glLoadIdentity)
+  (gluLookAt 0.0 0.0 -10.0 0.0 0.0 0.0 0.0 0.0 0.0)
+  (glTranslated 0 0 *z*)
+  (glRotated *xrot* 1 0 0)
+  (glRotated *yrot* 0 1 0)
+  (glRotated *zrot* 0 0 1)
 
+  (glLoadIdentity)
+  (glTranslated 0 0 *z*)
+  (glRotated *xrot* 1 0 0)
+  (glRotated *yrot* 0 1 0)
+  (glRotated *zrot* 0 0 1)
+  
+  (glBegin GL_POLYGON);
+  (glColor3f  1.0 0.0 0.0 );
+  (glVertex3f   0.5 -0.5 -0.5 );      ;; P1 is red
+  (glColor3f  0.0 1.0 0.0 );
+  (glVertex3f   0.5  0.5 -0.5 ); ;; P2 is green
+  (glColor3f  0.0 0.0 1.0 );
+  (glVertex3f  -0.5  0.5 -0.5 );      ;; P3 is blue
+  (glColor3f  1.0 0.0 1.0 );
+  (glVertex3f  -0.5 -0.5 -0.5 );      ;; P4 is purple
+  (glEnd );
+
+  ;; White side - BACK
+  (glBegin GL_POLYGON);
+  (glColor3f    1.0  1.0 1.0 );
+  (glVertex3f   0.5 -0.5 0.5 );
+  (glVertex3f   0.5  0.5 0.5 );
+  (glVertex3f  -0.5  0.5 0.5 );
+  (glVertex3f  -0.5 -0.5 0.5 );
+  (glEnd );
+  
+  ;; Purple side - RIGHT
+  (glBegin GL_POLYGON);
+  (glColor3f   1.0  0.0  1.0 );
+  (glVertex3f  0.5 -0.5 -0.5 );
+  (glVertex3f  0.5  0.5 -0.5 );
+  (glVertex3f  0.5  0.5  0.5 );
+  (glVertex3f  0.5 -0.5  0.5 );
+  (glEnd );
+  
+  ;; Green side - LEFT
+  (glBegin GL_POLYGON);
+  (glColor3f    0.0  1.0  0.0 );
+  (glVertex3f  -0.5 -0.5  0.5 );
+  (glVertex3f  -0.5  0.5  0.5 );
+  (glVertex3f  -0.5  0.5 -0.5 );
+  (glVertex3f  -0.5 -0.5 -0.5 );
+  (glEnd );
+  
+  ;; Blue side - TOP
+  (glBegin GL_POLYGON);
+  (glColor3f    0.0  0.0  1.0 );
+  (glVertex3f   0.5  0.5  0.5 );
+  (glVertex3f   0.5  0.5 -0.5 );
+  (glVertex3f  -0.5  0.5 -0.5 );
+  (glVertex3f  -0.5  0.5  0.5 );
+  (glEnd );
+  
+  ;; Red side - BOTTOM
+  (glBegin GL_POLYGON);
+  (glColor3f    1.0  0.0  0.0 );
+  (glVertex3f   0.5 -0.5 -0.5 );
+  (glVertex3f   0.5 -0.5  0.5 );
+  (glVertex3f  -0.5 -0.5  0.5 );
+  (glVertex3f  -0.5 -0.5 -0.5 );
+  (glEnd );
+
+  (glFlush))
 
 (set-gl-init-fn my-gl-init)
 (set-gl-draw-fn my-gl-draw)
 
-(gl-run)
-
-(send bm save-file "result.png" 'png)
-
-
-(send gl-canvas get-height)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Markers
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define (generate-marker id)
-  (define ids (vector #x10 #x17 #x09 #x0e))
-  (for/vector ([y (in-range 0 5)])
-    (define index (bitwise-and (arithmetic-shift id (- (* 2 (- 4 y))))
-                               3))
-    (define val (vector-ref ids index))
-    (for/vector ([x (in-range 0 5)])
-      (if (> (bitwise-and (arithmetic-shift val (- (- 4 x))) 1) 0)
-          1
-          0))))
-
-
-(define (matrix-rotate a-matrix (direction 'ccw))
-  ;; do only ccw rotation for now!
-  (define rows (vector-length a-matrix))
-  (define cols (vector-length (vector-ref a-matrix 0)))
-  (define result (make-matrix rows cols))
-  (define (find-new-row row col) col)
-  (define (find-new-col row col) (+ (* row -1) (- cols 1)))
-  (for* ([col (in-range 0 cols)]
-         [row (in-range 0 rows)])
-    (matrix-set! result
-                 (find-new-row row col)
-                 (find-new-col row col)
-                 (matrix-ref a-matrix row col)))
-  result)
-
-(define (draw-marker a-matrix width height)
-  (define target (make-bitmap width height))
-  (define dc (new bitmap-dc% [bitmap target]))
-  (send dc set-pen "white" 0 'transparent)
-  (send dc set-brush "white" 'solid)
-  (send dc draw-rectangle 0 0 width height)
-  (define rows (vector-length a-matrix))
-  (define cols (vector-length (vector-ref a-matrix 0)))
-  (define unit-x (/ width (+ cols 2.0)))
-  (define unit-y (/ height (+ rows 2.0)))
-  (for* ([row (in-range 0 rows)]
-         [col (in-range 0 cols)])
-    (if (zero? (matrix-ref a-matrix row col))
-        (send dc set-brush "white" 'solid)
-        (send dc set-brush "black" 'solid))
-    (send dc draw-rectangle
-          (+ unit-x (* col unit-x))
-          (+ unit-y (* row unit-y)) unit-x unit-y))
-  target)
-
-
-(define (visualize-markers markers width height (separator 0.2))
-  (define size (inexact->exact (ceiling (sqrt (length markers)))))
-  (define W (inexact->exact (round (+ (* size width)
-                                      (* (+ size 1) (* separator width))))))
-  (define H (inexact->exact (round (+ (* size height)
-                                      (* (+ size 1) (* separator height))))))
-  (define frame (new frame%
-                     [label "Example"]
-                     [width W]
-                     [height H]))
-  (define canvas (new canvas% [parent frame]
-                      [min-width W]
-                      [min-height H]))
-  (define c-dc (send canvas get-dc))
-  (define bm (send canvas make-bitmap W H))
-  (define dc (send bm make-dc))
-  (send frame show #t)
-  (sleep/yield 0.1)
-  ;; make the background black
-  ;;(send dc set-smoothing 'smoothed)
-  (send dc set-brush "black" 'solid)
-  (send dc draw-rectangle 0 0 W H)
-  ;; draw as many markers as they fit
-  (for ([marker (in-list markers)]
-        [n (in-range 0 (length markers))])
-    (define row (quotient n size))
-    (define col (remainder n size))
-    (define y-offset (+ (* height separator) (* row (+ height (* height separator)))))
-    (define x-offset (+ (* width separator) (* col (+ width (* width separator)))))
-    (send dc draw-bitmap (draw-marker marker width height) x-offset y-offset))
-  (send c-dc draw-bitmap bm 0 0)
-  (send bm save-file "test.png" 'png)
-  bm)
-
-
-(define markers (map generate-marker (range 0 80)))
-(define bm (visualize-markers (map generate-marker (range 0 100)) 100 100 0.2))
-;; what about opengl and synthetic images?
+(gl-run 640 480)
