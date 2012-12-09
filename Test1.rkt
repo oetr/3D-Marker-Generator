@@ -13,6 +13,7 @@
 (define NSBackingStoreBuffered 2)
 (define NSMiniaturizableWindowMask 4)
 (define NSFullScreenWindowMask      (<< 1 14))
+(define NSOpenGLPFAMultisample       59)
 
 (define NSScreenSaverWindowLevel     1000)
 
@@ -63,38 +64,28 @@
 (define c
   (tell (tell NSWindow alloc)
         initWithContentRect: #:type _NSRect (make-NSRect
-                                             (make-NSPoint 100 100)
-                                             (make-NSSize  400 400))
+                                             (make-NSPoint 0 0)
+                                             (make-NSSize  640 480))
         styleMask: #:type _int (bitwise-ior
                                 NSMiniaturizableWindowMask
                                 NSResizableWindowMask
                                 NSClosableWindowMask
-                                ;;NSBorderlessWindowMask
-                                ;;NSTexturedBackgroundWindowMask
+                                NSBorderlessWindowMask
+                                NSTexturedBackgroundWindowMask
                                 ;;NSFullScreenWindowMask
                                 )
         backing: #:type _int NSBackingStoreBuffered
         defer: #:type _BOOL YES))
 
-(tell #:type _BOOL c isOpaque)
-(tell #:type _BOOL c isVisible)
-(tell #:type _BOOL c isKeyWindow)
-(tell #:type _BOOL c canBecomeKeyWindow)
-
-
-
-;;(tellv c toggleFullScreen: c)
 (tell c setTitle: #:type _NSString "This Window is Awesome!")
-
-;;(tellv c setLevel: #:type _int NSScreenSaverWindowLevel)
-;;(tellv c close)
 
 (define NSOpenGLPFADoubleBuffer       5)
 (define NSOpenGLPFADepthSize          12)
-(define attributes (malloc 'atomic (_array _uint 1)))
+(define attributes (malloc 'atomic (_array _uint 2)))
 
 ;;(ptr-set! attributes _uint 0 NSOpenGLPFADoubleBuffer)
-(ptr-set! attributes _uint 0 0)
+(ptr-set! attributes _uint 0 NSOpenGLPFAMultisample)
+(ptr-set! attributes _uint 1 0)
 
 
 (define pixFmt (tell (tell NSOpenGLPixelFormat alloc)
@@ -103,116 +94,157 @@
 (define context (tell (tell NSOpenGLContext alloc) initWithFormat: pixFmt
                       shareContext: #f))
 
+(tellv c setLevel: #:type _int NSScreenSaverWindowLevel)
+
 (define init? #f)
 
 (define (my-gl-init)
-  (glShadeModel GL_SMOOTH)
-  ;;(glClearColor 0.0 0.0 0.0 1)
-  (glClearDepth 1)
-  (glEnable GL_DEPTH_TEST)
-  (glDepthFunc GL_LEQUAL)
-  (glHint GL_PERSPECTIVE_CORRECTION_HINT GL_NICEST))
+  (glColor4d 1 1 1 0)
+    (glBlendFunc GL_SRC_ALPHA GL_ONE)
+    (glEnable GL_BLEND)
+    ;; Standard Init
+    (glEnable GL_TEXTURE_2D)
+    (glShadeModel GL_SMOOTH)
+    (glClearColor 0.0 0.0 0.0 0.5)
+    (glClearDepth 1)
+    (glEnable GL_DEPTH_TEST)
+    (glDepthFunc GL_LEQUAL)
+    (glHint GL_PERSPECTIVE_CORRECTION_HINT GL_NICEST)
+    )
+  ;; (glShadeModel GL_SMOOTH)
+  ;; (glClearColor 0.0 0.0 0.0 1)
+  ;; (glClearDepth 1)
+  ;; (glEnable GL_DEPTH_TEST)
+  ;; (glDepthFunc GL_LEQUAL)
+  ;; (glHint GL_PERSPECTIVE_CORRECTION_HINT GL_NICEST))
 
+(struct posn (x y z) #:mutable)
+
+(define p1 (posn 0.0 1.0 0.0))
+(define p2 (posn -1.0 0.0 0.0))
+(define p3 (posn 1.0 0.0 0.0))
+(define z 0.1)
+
+(define xrot 0)
+(define yrot 0)
+(define zrot 0)
 
 (define (draw-triangles)
-  (glColor3f 1.0 0.85 0.35)
+  (glLoadIdentity)
+  (glTranslated 0.0 0.0 z)
+  (glRotated xrot 1 0 0)
+  (glRotated yrot 0 1 0)
+  (glRotated zrot 0 0 1)
+  
   (glBegin GL_TRIANGLES)
-  (glVertex3f 0.0 0.6 0.0)
-  (glVertex3f -0.2 -0.3 0.0)
-  (glVertex3f 0.2 -0.3 0.0)
+  (glEnable GL_MULTISAMPLE)
+  (glColor3f 1.0 0.0 0.0)
+  (glVertex3f (posn-x p1) (posn-y p1) (posn-z p1))
+  (glColor3f 0.0 0.0 1.0)
+  (glVertex3f (posn-x p2) (posn-y p2) (posn-z p2))
+  (glColor3f 1.0 0.0 0.0)
+  (glVertex3f (posn-x p3) (posn-y p3) (posn-z p3))
   (glEnd))
+
+;; (define (draw-shade bounds)
+;;   NSGradient* aGradient = [[[NSGradient alloc]
+;;                             initWithStartingColor:[NSColor orangeColor]
+;;                             endingColor:[NSColor cyanColor]] autorelease];
+;;   NSPoint centerPoint = NSMakePoint(NSMidX(bounds), NSMidY(bounds));
+;;   NSPoint otherPoint = NSMakePoint(centerPoint.x + 60.0, centerPoint.y + 60.0);
+;;   CGFloat firstRadius = MIN( ((bounds.size.width/2.0) - 2.0),
+;;                              ((bounds.size.height/2.0) -2.0) );
+;;   [aGradient drawFromCenter:centerPoint radius:firstRadius
+;;              toCenter:otherPoint radius:5.0
+;;              options:0];
+;;   )
+
 
 (define (my-gl-draw context)
   (glClear (bitwise-ior GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
-  (glClearColor 0 0.3 0.3 0)
+  (glClearColor 0.0 0.0 0.0 1.0)
   (draw-triangles))
-
-
-(define (draw-box)
-  (glLoadIdentity)
-  (glTranslated 0 0 10)
-  (glRotated 0 1 0 0)
-  (glRotated 0 0 1 0)
-  (glRotated 0 0 0 1)
-  (glBegin GL_POLYGON);
-  (glColor3f  1.0 0.0 0.0 );
-  (glVertex3f   0.5 -0.5 -0.5 );      ;; P1 is red
-  (glColor3f  0.0 1.0 0.0 );
-  (glVertex3f   0.5  0.5 -0.5 ); ;; P2 is green
-  (glColor3f  0.0 0.0 1.0 );
-  (glVertex3f  -0.5  0.5 -0.5 );      ;; P3 is blue
-  (glColor3f  1.0 0.0 1.0 );
-  (glVertex3f  -0.5 -0.5 -0.5 );      ;; P4 is purple
-  (glEnd );
-  ;; White side - BACK
-  (glBegin GL_POLYGON);
-  (glColor3f    1.0  1.0 0.0 );
-  (glVertex3f   0.5 -0.5 0.5 );
-  (glVertex3f   0.5  0.5 0.5 );
-  (glVertex3f  -0.5  0.5 0.5 );
-  (glVertex3f  -0.5 -0.5 0.5 );
-  (glEnd );
-  ;; Purple side - RIGHT
-  (glBegin GL_POLYGON);
-  (glColor3f   1.0  0.0  1.0 );
-  (glVertex3f  0.5 -0.5 -0.5 );
-  (glVertex3f  0.5  0.5 -0.5 );
-  (glVertex3f  0.5  0.5  0.5 );
-  (glVertex3f  0.5 -0.5  0.5 );
-  (glEnd );
-  ;; Green side - LEFT
-  (glBegin GL_POLYGON);
-  (glColor3f    0.0  1.0  0.0 );
-  (glVertex3f  -0.5 -0.5  0.5 );
-  (glVertex3f  -0.5  0.5  0.5 );
-  (glVertex3f  -0.5  0.5 -0.5 );
-  (glVertex3f  -0.5 -0.5 -0.5 );
-  (glEnd );
-  ;; Blue side - TOP
-  (glBegin GL_POLYGON);
-  (glColor3f    0.0  0.0  1.0 );
-  (glVertex3f   0.5  0.5  0.5 );
-  (glVertex3f   0.5  0.5 -0.5 );
-  (glVertex3f  -0.5  0.5 -0.5 );
-  (glVertex3f  -0.5  0.5  0.5 );
-  (glEnd );
-  ;; Red side - BOTTOM
-  (glBegin GL_POLYGON)
-  (glColor3f    1.0  0.0  0.0 )
-  (glVertex3f   0.5 -0.5 -0.5 )
-  (glVertex3f   0.5 -0.5  0.5 )
-  (glVertex3f  -0.5 -0.5  0.5 )
-  (glVertex3f  -0.5 -0.5 -0.5 )
-  (glEnd))
-
-(define gl-lib (ffi-lib
-                "/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL"))
-
-(define-ffi-definer define-gl
-  (ffi-lib "/opt/local/lib/libopencv_highgui"))
 
 
 (define-objc-class my-gl-view NSOpenGLView
   (context)
+  ;; (- _void (drawRect: [_NSRect exposed-rect])
+  ;;    (super-tell drawRect: #:type _NSRect exposed-rect)
+  ;;    (define origin (NSRect-origin exposed-rect))
+  ;;    (define size (NSRect-size exposed-rect))
+  ;;    (printf "size: ~a, ~a, origin: ~a, ~a~n"
+  ;;            (NSSize-width size)
+  ;;            (NSSize-height size)
+  ;;            (NSPoint-x origin)
+  ;;            (NSPoint-y origin))
+  ;;    (unless init?
+  ;;      (my-gl-init)
+  ;;      (set! init? #t))
+  ;;    (my-gl-draw context)
+  ;;    (glFinish)
+  ;;    (tellv context flushBuffer))
   (- _void (update)
      (super-tell update)
+     (define b (tell #:type _NSRect self bounds))
+     (define or (NSRect-origin b))
+     (define s (NSRect-size b))
+     (printf "b_size: ~a, ~a, b_origin: ~a, ~a~n"
+             (NSSize-width s)
+             (NSSize-height s)
+             (NSPoint-x or)
+             (NSPoint-y or))
      (unless init?
        (my-gl-init)
        (set! init? #t))
      (my-gl-draw context)
      (glFinish)
-     (printf "flush.update!~n")
      (tellv context flushBuffer)))
 
 
 (define glv
   (tell (tell my-gl-view alloc)
         initWithFrame: #:type _NSRect (make-NSRect
-                                       (make-NSPoint 100 100)
-                                       (make-NSSize  400 400))
+                                       (make-NSPoint 0 0)
+                                       (make-NSSize  640 480))
         pixelFormat: pixFmt))
 
 (tellv c setContentView: glv)
 (tellv c makeKeyAndOrderFront: #:type _BOOL YES)
 
 (tellv glv update)
+
+(define (move-p2 diff)
+  (set-posn-x! p2 (+ (posn-x p2) diff))
+  (tellv glv update))
+
+(define (posn+ p1 p2)
+  (posn (+ (posn-x p1) (posn-x p2))
+        (+ (posn-y p1) (posn-y p2))
+        (+ (posn-z p1) (posn-z p2))))
+
+(define (posn+! p1 p2)
+  (define new-posn (posn+ p1 p2))
+  (set-posn-x! p1 (posn-x new-posn))
+  (set-posn-y! p1 (posn-y new-posn))
+  (set-posn-z! p1 (posn-z new-posn)))
+
+(move-p2 0.1)
+(move-p2 -0.1)
+
+(define (change-z diff)
+  (set! z (+ z diff))
+  (tellv glv update))
+
+(change-z -0.2)
+
+(define (change-xrot diff)
+  (set! xrot (+ xrot diff))
+  (tellv glv update))
+
+(define (change-yrot diff)
+  (set! yrot (+ yrot diff))
+  (tellv glv update))
+
+(define (change-zrot diff)
+  (set! zrot (+ zrot diff))
+  (tellv glv update))
