@@ -3,7 +3,8 @@
          ffi/unsafe/nsstring
          ffi/unsafe/define
          sgl/gl
-         "constants.rkt")
+         "constants.rkt"
+         "geometry.rkt")
 
 (define (<< a b) (arithmetic-shift a b))
 (define NSBorderlessWindowMask 0)
@@ -81,13 +82,13 @@
         backing: #:type _int NSBackingStoreBuffered
         defer: #:type _BOOL YES))
 
-(tell c setTitle: #:type _NSString "This Window is Awesome!")
+(tell c setTitle: #:type _NSString "Fiducial Marker Generator")
 
 
 (define attributes
   (array #:type _NSOpenGLPixelFormatAttribute
          NSOpenGLPFAAllRenderers
-;;         NSOpenGLPFAPixelBuffer
+         ;;         NSOpenGLPFAPixelBuffer
          NSOpenGLPFAAccelerated
          NSOpenGLPFAMultisample
          NSOpenGLPFASampleBuffers 8
@@ -109,15 +110,10 @@
 (define init? #f)
 
 (define (my-gl-init)
-  ;;(glShadeModel GL_SMOOTH)
+  (glShadeModel GL_SMOOTH)
   (glClearColor 0.0 0.0 0.0 0.0)
   (glShadeModel GL_FLAT)
   (glClearDepth 1)
-  ;;(gluPerspective 40.0 (/ 640.0 480.0) .1 20.0 )
-  ;; (glEnable GL_DEPTH_TEST)
-  ;; (glDepthFunc GL_LEQUAL)
-  ;; (glHint GL_PERSPECTIVE_CORRECTION_HINT GL_NICEST)
-  ;; (glEnable GL_MULTISAMPLE)
   )
 
 
@@ -149,120 +145,6 @@
   (glVertex3f (posn-x p3) (posn-y p3) (posn-z p3))
   (glEnd))
 
-(define (glWireCube dSize)
-  (define size (* 0.5 dSize))
-  (define (V a b c) (glVertex3d (a size) (b size) (c size)))
-  (define (N a b c) (glNormal3d a b c))
-  ;; PWO: I dared to convert the code to use macros...
-  (glBegin GL_LINE_LOOP)(N 1.0  0.0  0.0)(V + - +)(V + - -)(V + + -)(V + + +)
-  (glEnd)
-  (glBegin  GL_LINE_LOOP)(N 0.0  1.0  0.0)(V + + +)(V + + -)(V - + -)(V - + +)
-  (glEnd)
-  (glBegin  GL_LINE_LOOP)(N 0.0  0.0  1.0)(V + + +)(V - + +)(V - - +)(V + - +)
-  (glEnd)
-  (glBegin GL_LINE_LOOP)(N -1.0  0.0  0.0)(V - - +)(V - + +)(V - + -)(V - - -)
-  (glEnd)
-  (glBegin  GL_LINE_LOOP) (N 0.0 -1.0  0.0) (V - - +) (V - - -) (V + - -) (V + - +)
-  (glEnd)
-  (glBegin  GL_LINE_LOOP)(N 0.0  0.0 -1.0)(V - - -)(V - + -)(V + + -)(V + - -)
-  (glEnd))
-
-(define (draw-wall)
-  ;;(glClear (bitwise-ior GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
-  ;;(glClearDepth 1)
-  ;; (glLoadIdentity)
-  ;;(gluLookAt 0.0 0.0 z 0.0 0.0 0.0 0.0 0.0 0.0)
-  ;; (glTranslated 0 0 z)
-  ;; (glRotated xrot 1 0 0)
-  ;; (glRotated yrot 0 1 0)
-  ;; (glRotated zrot 0 0 1)
-
-  ;; (glLoadIdentity)
-  ;; (glTranslated 0.0 0.0 0.0)
-  (glRotated xrot 1 0 0)
-  (glRotated yrot 0 1 0)
-  (glRotated zrot 0 0 1)
-  
-  (glBegin GL_POLYGON);
-  (glColor3f  1.0 0.0 0.0 );
-  (glVertex3f   0.5 -0.5 -0.5 );      ;; P1 is red
-  (glColor3f  0.0 1.0 0.0 );
-  (glVertex3f   0.5  0.5 -0.5 ); ;; P2 is green
-  (glColor3f  0.0 0.0 1.0 );
-  (glVertex3f  -0.5  0.5 -0.5 );      ;; P3 is blue
-  (glColor3f  1.0 0.0 1.0 );
-  (glVertex3f  -0.5 -0.5 -0.5 );      ;; P4 is purple
-  (glEnd )
-
-  ;; White side - BACK
-  (glBegin GL_POLYGON);
-  (glColor3f    1.0  1.0 1.0 );
-  (glVertex3f   0.5 -0.5 0.5 );
-  (glVertex3f   0.5  0.5 0.5 );
-  (glVertex3f  -0.5  0.5 0.5 );
-  (glVertex3f  -0.5 -0.5 0.5 );
-  (glEnd );
-  
-  ;; Purple side - RIGHT
-  (glBegin GL_POLYGON);
-  (glColor3f   1.0  0.0  1.0 );
-  (glVertex3f  0.5 -0.5 -0.5 );
-  (glVertex3f  0.5  0.5 -0.5 );
-  (glVertex3f  0.5  0.5  0.5 );
-  (glVertex3f  0.5 -0.5  0.5 );
-  (glEnd );
-  
-  ;; Green side - LEFT
-  (glBegin GL_POLYGON);
-  (glColor3f    0.0  1.0  0.0 );
-  (glVertex3f  -0.5 -0.5  0.5 );
-  (glVertex3f  -0.5  0.5  0.5 );
-  (glVertex3f  -0.5  0.5 -0.5 );
-  (glVertex3f  -0.5 -0.5 -0.5 );
-  (glEnd );
-  
-  ;; Blue side - TOP
-  (glBegin GL_POLYGON);
-  (glColor3f    0.0  0.0  1.0 );
-  (glVertex3f   0.5  0.5  0.5 );
-  (glVertex3f   0.5  0.5 -0.5 );
-  (glVertex3f  -0.5  0.5 -0.5 );
-  (glVertex3f  -0.5  0.5  0.5 );
-  (glEnd );
-  
-  ;; Red side - BOTTOM
-  (glBegin GL_POLYGON);
-  (glColor3f    1.0  0.0  0.0 );
-  (glVertex3f   0.5 -0.5 -0.5 );
-  (glVertex3f   0.5 -0.5  0.5 );
-  (glVertex3f  -0.5 -0.5  0.5 );
-  (glVertex3f  -0.5 -0.5 -0.5 );
-  (glEnd );
-
-
-  )
-
-(define (gl-draw-cubes)
-  (glPushMatrix )
-  (glTranslatef 0  0  -70.0)
-  (glTranslatef  -1.0  0.0  0.0)
-  (glRotatef  45  0.0  0.0  1.0)
-  (glTranslatef  1.0  0.0  0.0)
-  (glPushMatrix )
-  (glScalef  2.0  0.4  1.0)
-  (glWireCube  1.0)
-  (glPopMatrix )
-  
-  (glPushMatrix )
-  (glTranslatef 0  0  -70.0)
-  (glTranslatef  -1.0  0.0  0.0)
-  (glRotatef  -45  0.0  0.0  1.0)
-  (glTranslatef  1.0  0.0  0.0)
-  (glPushMatrix )
-  (glScalef  2.0  0.4  1.0)
-  (glWireCube  1.0)
-  (glPopMatrix ))
-
 (define y 0.0)
 
 (define (my-gl-draw)
@@ -270,27 +152,34 @@
   (glClear GL_COLOR_BUFFER_BIT) ;;Clear the colour buffer (more buffers later on)  
   (glLoadIdentity) ;; Load the Identity Matrix to reset our drawing locations
   (gluLookAt 0 0 z 0 0 0 0 1 0)
-  
-  ;; (glTranslatef 0.0 0.0 -1.0) ;; Push eveything 5 units back into the scene, otherwise we won't see the primitive  
-  ;; (glTranslatef 0.0 0.0 0.0); ;; Translate our object along the y axis  
-  ;; (glRotatef yrot 0.0 1.0 0.0); ;; Rotate our object around the y axis
-  ;; (glColor3f    1.0  1.0  1.0 );
-  (glWireCube 0.5) ;; Render the primitive  
+  (glutWireCube 1.0) ;; Render the primitive
+  (glutSolidCube 1.0) ;; Render the primitive  
   )
 
 (define-objc-class my-gl-view NSOpenGLView
   (context)
   (- _void (prepareOpenGL)
-     (super-tell prepareOpenGL)
-     )
-  ;; (- _void (reshape)
-  ;;    (super-tell reshape)
-  ;;    ;;(glViewport xo yo w h)
-  ;;    ;;(glMatrixMode GL_PROJECTION)
-  ;;    ;;(glLoadIdentity)
-  ;;    ;;(glFrustum -1.0 1.0 -1.0 1.0 1.5 20.0)
-  ;;    ;;(glMatrixMode GL_MODELVIEW)
-  ;;    )
+     (super-tell prepareOpenGL))
+   (- _void (reshape)
+      ;;(super-tell reshape)
+      (define bounds (tell #:type _NSRect self bounds))
+      (define origin (NSRect-origin bounds))
+      (define size (NSRect-size bounds))
+      (define x (NSPoint-x origin))
+      (define y (NSPoint-y origin))
+      (define w (NSSize-width size))
+      (define h (NSSize-height size))
+      (glViewport (inexact->exact x)
+                  (inexact->exact y)
+                  (inexact->exact w)
+                  (inexact->exact h))
+      (glMatrixMode GL_PROJECTION)	;; Select The Projection Matrix
+      (glLoadIdentity)		;; Reset The Projection Matrix
+      (gluPerspective 40.0 (/ w h 1.0) 0.1 10000.0)
+      (glMatrixMode GL_MODELVIEW)	;; Select The Modelview Matrix
+      (glLoadIdentity)		;; Reset The Modelview Matrix
+      (glFlush)
+      )
   (- _void (update)
      (super-tell update)
      (unless init?
@@ -337,7 +226,11 @@
   (set! z (+ z diff))
   (tellv glv update))
 
-(change-z 0.1)
+(define (set-z! new-z)
+  (set! z new-z)
+  (tellv glv update))
+
+(change-z -0.0)
 
 (define (change-xrot diff)
   (set! xrot (+ xrot diff))
@@ -361,16 +254,13 @@
 
 (define (change-viewport x y width height fov ar near far)
   (glViewport x y width height)
-  (glMatrixMode GL_PROJECTION);	// Select The Projection Matrix
-  (glLoadIdentity);		// Reset The Projection Matrix
+  (glMatrixMode GL_PROJECTION)	;; Select The Projection Matrix
+  (glLoadIdentity)		;; Reset The Projection Matrix
   (gluPerspective fov ar near far)
-  (glMatrixMode GL_MODELVIEW);	// Select The Modelview Matrix
-  (glLoadIdentity);		// Reset The Modelview Matrix
+  (glMatrixMode GL_MODELVIEW)	;; Select The Modelview Matrix
+  (glLoadIdentity)		;; Reset The Modelview Matrix
   (tellv glv update))
 
-(change-viewport 0 0 W H 20.0 (/ W H 1.0) 0.001 1000.0)
-
-(glClear (bitwise-ior GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
-(glClearDepth 1)
-(glLoadIdentity)
-(glFlush)
+(change-viewport 0 0 W H 40.0 (/ W H 1.0) 0.1 1000.0)
+(set-z! 10.0)
+(change-z 0.0001)

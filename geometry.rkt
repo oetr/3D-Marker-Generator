@@ -1,0 +1,38 @@
+;; Translated to Racket from the freegGLUT library
+(module geometry racket
+  (require sgl/gl)
+  
+  ;; Draws a wireframed cube
+  (provide glutWireCube)
+  (define (glutWireCube dSize)
+    (define size (* 0.5 dSize))
+    (define (V op1 op2 op3) (glVertex3d (op1 size) (op2 size) (op3 size)))
+    (define (N a b c) (glNormal3d a b c))
+    (glBegin GL_LINE_LOOP)(N 1.0 0.0 0.0)(V + - +)(V + - -)(V + + -)(V + + +)
+    (glEnd)
+    (glBegin GL_LINE_LOOP)(N 0.0 1.0 0.0)(V + + +)(V + + -)(V - + -)(V - + +)
+    (glEnd)
+    (glBegin GL_LINE_LOOP)(N 0.0 0.0 1.0)(V + + +)(V - + +)(V - - +)(V + - +)
+    (glEnd)
+    (glBegin GL_LINE_LOOP)(N -1.0 0.0 0.0)(V - - +)(V - + +)(V - + -)(V - - -)
+    (glEnd)
+    (glBegin GL_LINE_LOOP) (N 0.0 -1.0 0.0) (V - - +) (V - - -) (V + - -) (V + - +)
+    (glEnd)
+    (glBegin GL_LINE_LOOP)(N 0.0 0.0 -1.0)(V - - -)(V - + -)(V + + -)(V + - -)
+    (glEnd))
+  
+  ;; Draws a solid cube
+  (provide glutSolidCube)
+  (define (glutSolidCube dSize)
+    (define size (* 0.5 dSize))
+    (define (V op1 op2 op3) (glVertex3d (op1 size) (op2 size) (op3 size)))
+    (define (N a b c) (glNormal3d a b c))
+    (glBegin GL_QUADS)
+    (N 1.0 0.0 0.0) (V + - +) (V + - -) (V + + -) (V + + +)
+    (N 0.0 1.0 0.0) (V + + +) (V + + -) (V - + -) (V - + +)
+    (N 0.0 0.0 1.0) (V + + +) (V - + +) (V - - +) (V + - +)
+    (N -1.0 0.0 0.0) (V - - +) (V - + +) (V - + -) (V - - -)
+    (N 0.0 -1.0 0.0) (V - - +) (V - - -) (V + - -) (V + - +)
+    (N 0.0 0.0 -1.0) (V - - -) (V - + -) (V + + -) (V + - -)
+    (glEnd))
+  )
