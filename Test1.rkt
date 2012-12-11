@@ -2,9 +2,13 @@
          ffi/unsafe
          ffi/unsafe/nsstring
          ffi/unsafe/define
+         ffi/cvector
          sgl/gl
+         sgl/gl-vectors
+         "utilities.rkt"
          "constants.rkt"
-         "geometry.rkt")
+         "geometry.rkt"
+         "ArUco.rkt")
 
 (define (<< a b) (arithmetic-shift a b))
 (define NSBorderlessWindowMask 0)
@@ -35,6 +39,21 @@
 
 (define-cstruct _NSPoint ([x _CGFloat]
                           [y _CGFloat]))
+
+
+(define-cstruct _CGImageRef
+  ([width _int]
+   [height _int]
+   [bitsPerComponent _int]
+   [bitsPerPixel _int]
+   [bytesPerRow _int]
+   [colorspace _pointer]
+   [bitmapInfo _pointer]
+   [provide _pointer]
+   [decode _pointer]
+   [shouldInterpolate _bool]
+   [intent _pointer]))
+
 (define-cstruct _NSSize ([width _CGFloat]
                          [height _CGFloat]))
 
@@ -51,19 +70,18 @@
 
 (import-class NSArray NSView NSPanel NSGraphicsContext NSScroller NSComboBox NSWindow 
               NSImageView NSTextFieldCell 
-              NSOpenGLView NSOpenGLPixelFormat NSString NSOpenGLView NSOpenGLPixelFormat NSOpenGLContext)
+              NSOpenGLView NSOpenGLPixelFormat NSString NSOpenGLView NSOpenGLPixelFormat NSOpenGLContext NSBitmapImageRep CGImageRef)
 
 (import-class NSAttributedString)
 (import-protocol NSComboBoxDelegate)
-
 
 (define first-string (tell (tell NSString alloc)
                            initWithUTF8String: #:type _string "test my shit"))
 
 (tell #:type _int first-string length)
 
-(define W 400)
-(define H 400)
+(define W 600)
+(define H 600)
 
 ;; making my own window
 (define c
@@ -88,12 +106,12 @@
 (define attributes
   (array #:type _NSOpenGLPixelFormatAttribute
          NSOpenGLPFAAllRenderers
-         ;;         NSOpenGLPFAPixelBuffer
+         NSOpenGLPFAPixelBuffer
          NSOpenGLPFAAccelerated
          NSOpenGLPFAMultisample
-         NSOpenGLPFASampleBuffers 8
+         NSOpenGLPFASampleBuffers 2
          NSOpenGLPFASamples 16
-         NSOpenGLPFADepthSize 16
+         NSOpenGLPFADepthSize 32
          NSOpenGLPFAColorSize 24
          NSOpenGLPFASupersample
          0))
@@ -107,61 +125,99 @@
 
 (tellv c setLevel: #:type _int NSScreenSaverWindowLevel)
 
-(define init? #f)
-
-(define (my-gl-init)
-  (glShadeModel GL_SMOOTH)
-  (glClearColor 0.0 0.0 0.0 0.0)
-  (glShadeModel GL_FLAT)
-  (glClearDepth 1)
-  )
-
-
 (struct posn (x y z) #:mutable)
 
-(define p1 (posn 0.0 1.0 0.0))
-(define p2 (posn -1.0 0.0 0.0))
-(define p3 (posn 1.0 0.0 0.0))
-(define z 0.1)
 (define t 0.0)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Textures
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define markers (map generate-marker (range 0 80)))
+(define bm (make-board (map generate-marker (range 0 100)) 100 100 0.2))
+
+(define *textures* '())
+
+(define (init-textures count)
+    (set! *textures* (glGenTextures count)))
+
+(define (get-texture ix)
+  (gl-vector-ref *textures* ix))
+
+(define *texture* (bitmap->gl-vector bm))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Init and draw procedures
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define init? #f)
+
+(define *tex* 2)
+
+(define (my-gl-init)
+  (let ((res *texture*))
+    ;; load textures
+    (init-textures 4)
+    (unless (gl-load-texture *textures*
+                             (list-ref res 2) (list-ref res 0) (list-ref res 1)
+                             GL_NEAREST GL_NEAREST 0)
+      (error "Couldn't load texture"))
+    (unless (gl-load-texture *textures*
+                             (list-ref res 2) (list-ref res 0) (list-ref res 1)
+                             GL_LINEAR GL_LINEAR 1)
+      (error "Couldn't load texture"))
+    (unless (gl-load-texture *textures*
+                             (list-ref res 2) (list-ref res 0) (list-ref res 1)
+                             GL_LINEAR GL_LINEAR_MIPMAP_NEAREST 2)
+      (error "Couldn't load texture"))
+    (unless (gl-load-texture *textures*
+                             (list-ref res 2) (list-ref res 0) (list-ref res 1)
+                             GL_LINEAR GL_LINEAR_MIPMAP_LINEAR 3)
+      (error "Couldn't load texture"))
+    (glShadeModel GL_SMOOTH)
+    (glEnable GL_MULTISAMPLE)
+    (glEnable GL_TEXTURE_2D)
+    (glClearColor 0.0 0.0 0.0 0.0)
+    (glShadeModel GL_FLAT)
+    (glClearDepth 1)))
 
 (define xrot 0)
 (define yrot 0)
 (define zrot 0)
 
-(define (draw-triangles)
-  (glLoadIdentity)
-  (glTranslated 0.0 0.0 z)
-  (glRotated xrot 1 0 0)
-  (glRotated yrot 0 1 0)
-  (glRotated zrot 0 0 1)
-  
-  (glBegin GL_TRIANGLES)
-  (glColor3f 1.0 0.0 0.0)
-  (glVertex3f (posn-x p1) (posn-y p1) (posn-z p1))
-  (glColor3f 0.0 0.0 1.0)
-  (glVertex3f (posn-x p2) (posn-y p2) (posn-z p2))
-  (glColor3f 1.0 0.0 0.0)
-  (glVertex3f (posn-x p3) (posn-y p3) (posn-z p3))
-  (glEnd))
-
+(define x 0.0)
 (define y 0.0)
+(define z 0.0)
 
 (define (my-gl-draw)
-  (glClearColor 1.0 0.0 0.0 1.0)
+  (glClearColor 0.0 0.0 0.0 1.0)
   (glClear GL_COLOR_BUFFER_BIT) ;;Clear the colour buffer (more buffers later on)  
   (glLoadIdentity) ;; Load the Identity Matrix to reset our drawing locations
-  (gluLookAt 0 0 z 0 0 0 0 1 0)
-  (glutWireCube 1.0) ;; Render the primitive
-  (glutSolidCube 1.0) ;; Render the primitive  
+  (gluLookAt x y z 0 0 0 0 1 0)
+  
+  (glBindTexture GL_TEXTURE_2D (get-texture *tex*))
+  (glBegin GL_QUADS)
+  ;; front
+  (glTexCoord2i 0 1)
+  (glVertex3f -0.5 -0.5 0.0)
+  (glTexCoord2i 1 1)
+  (glVertex3f 0.5 -0.5 0.0)
+  (glTexCoord2i 1 0)
+  (glVertex3f 0.5 0.5 0.0)
+  (glTexCoord2i 0 0)
+  (glVertex3f -0.5 0.5 0.0)
+  (glEnd)
+  ;;(glFlush)
+  ;;(glutWireCube 1.0) ;; Render the primitive
+  ;;(glutSolidCube 1.0) ;; Render the primitive
   )
+
 
 (define-objc-class my-gl-view NSOpenGLView
   (context)
   (- _void (prepareOpenGL)
      (super-tell prepareOpenGL))
    (- _void (reshape)
-      ;;(super-tell reshape)
+      (super-tell reshape)
       (define bounds (tell #:type _NSRect self bounds))
       (define origin (NSRect-origin bounds))
       (define size (NSRect-size bounds))
@@ -174,10 +230,10 @@
                   (inexact->exact w)
                   (inexact->exact h))
       (glMatrixMode GL_PROJECTION)	;; Select The Projection Matrix
-      (glLoadIdentity)		;; Reset The Projection Matrix
+      (glLoadIdentity)		        ;; Reset The Projection Matrix
       (gluPerspective 40.0 (/ w h 1.0) 0.1 10000.0)
       (glMatrixMode GL_MODELVIEW)	;; Select The Modelview Matrix
-      (glLoadIdentity)		;; Reset The Modelview Matrix
+      (glLoadIdentity)		        ;; Reset The Modelview Matrix
       (glFlush)
       )
   (- _void (update)
@@ -201,26 +257,7 @@
 
 (tellv c setContentView: glv)
 (tellv c makeKeyAndOrderFront: #:type _BOOL YES)
-
 (tellv glv update)
-
-(define (move-p2 diff)
-  (set-posn-x! p2 (+ (posn-x p2) diff))
-  (tellv glv update))
-
-(define (posn+ p1 p2)
-  (posn (+ (posn-x p1) (posn-x p2))
-        (+ (posn-y p1) (posn-y p2))
-        (+ (posn-z p1) (posn-z p2))))
-
-(define (posn+! p1 p2)
-  (define new-posn (posn+ p1 p2))
-  (set-posn-x! p1 (posn-x new-posn))
-  (set-posn-y! p1 (posn-y new-posn))
-  (set-posn-z! p1 (posn-z new-posn)))
-
-(move-p2 0.1)
-(move-p2 -0.1)
 
 (define (change-z diff)
   (set! z (+ z diff))
@@ -231,22 +268,6 @@
   (tellv glv update))
 
 (change-z -0.0)
-
-(define (change-xrot diff)
-  (set! xrot (+ xrot diff))
-  (tellv glv update))
-
-(define (change-yrot diff)
-  (set! yrot (+ yrot diff))
-  (tellv glv update))
-
-(define (change-zrot diff)
-  (set! zrot (+ zrot diff))
-  (tellv glv update))
-
-(define (change-t diff)
-  (set! t (+ t diff))
-  (tellv glv update))
 
 (define (change-y diff)
   (set! y (+ y diff))
@@ -262,5 +283,48 @@
   (tellv glv update))
 
 (change-viewport 0 0 W H 40.0 (/ W H 1.0) 0.1 1000.0)
-(set-z! 10.0)
-(change-z 0.0001)
+(set-z! -100.0)
+
+(define (set-camera-position! x-prime y-prime z-prime)
+  (set! x x-prime)
+  (set! y y-prime)
+  (set! z z-prime)
+  (tellv glv update))
+
+(define (increment-camera-position! x-diff y-diff z-diff)
+  (set! x (+ x x-diff))
+  (set! y (+ y y-diff))
+  (set! z (+ z z-diff))
+  (tellv glv update))
+
+(define (compute-fov size distance)
+  (/ (* 2.0 180.0 (atan (/ size 2.0) distance)) pi))
+
+(set-camera-position! (random 10) (random 10) (random 5))
+(set-camera-position! 0 2 1.5)
+(change-viewport 0 0 W H 43.6 (/ W H 1.0) 0.1 1000.0)
+
+(set! *tex* 0)
+(set-camera-position! 0 0 1.25)
+
+;; (define (t)
+;;   (set-camera-position! (random 3) (random 3) (random 3))
+;;   (sleep .5)
+;;   (t))
+
+;; (define k (thread t))
+
+;;(increment-camera-position! 0.0 0.0 (sin z))
+
+
+;;(define bm (make-array #:type _ubyte (* W H 4) 0))
+
+(define bm-cv (make-cvector _ubyte (* W H 4)))
+
+(glReadPixels 0 0 W H GL_RGBA GL_UNSIGNED_BYTE bm-cv)
+
+(define bm (list->bytes (cvector->list bm-cv)))
+
+(define r (make-bitmap W H))
+(send r set-argb-pixels 0 0 W H (rgba->argb bm W H))
+(send r save-file "test.png" 'png)

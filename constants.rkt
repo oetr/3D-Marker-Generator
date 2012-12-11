@@ -1,8 +1,6 @@
 (module constants racket
   (provide (all-defined-out))
-  (require ffi/unsafe
-           ffi/unsafe/define)
-         
+
   (define NSOpenGLPFAAllRenderers         1)
   (define NSOpenGLPFADoubleBuffer         5)
   (define NSOpenGLPFAStereo               6)
@@ -39,18 +37,5 @@
   (define NSOpenGLPFARemotePixelBuffer   91)
   (define NSOpenGLPFAAllowOfflineRenderers 96)
   (define NSOpenGLPFAAcceleratedCompute  97)
-  (define NSOpenGLPFAVirtualScreenCount 128)
-
-  (define (array #:type type . elements)
-    (define size (length elements))
-    (define result
-      (ptr-ref (malloc type size 'atomic)
-               (_array type size)))
-    (for ([i (in-range 0 size)]
-          [val (in-list elements)])
-      (array-set! result i val))
-    result)
-    
-    
-    
-)
+  (define NSOpenGLPFAVirtualScreenCount 128)  
+  )
