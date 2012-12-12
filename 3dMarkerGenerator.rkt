@@ -384,10 +384,10 @@
     (define x-offset (+ (* width separator) (* col (+ width (* width separator)))))
     (send dc draw-bitmap (draw-marker marker width height) x-offset y-offset))
   (send c-dc draw-bitmap bm 0 0)
-  (send bm save-file "test.png" 'png)
+  (send bm save-file "board.png" 'png)
   bm)
 
 
-(define markers (map generate-marker (range 0 80)))
+;;(define markers (map generate-marker (range 0 80)))
 (define bm (visualize-markers (map generate-marker (range 0 100)) 100 100 0.2))
 ;; what about opengl and synthetic images?

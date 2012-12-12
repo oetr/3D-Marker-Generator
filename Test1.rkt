@@ -10,19 +10,6 @@
          "geometry.rkt"
          "ArUco.rkt")
 
-(define (<< a b) (arithmetic-shift a b))
-(define NSBorderlessWindowMask 0)
-(define NSUtilityWindowMask (1 . << . 4))
-(define NSTexturedBackgroundWindowMask (1 . << . 8))
-(define NSResizableWindowMask 8)
-(define NSClosableWindowMask 2)
-(define NSBackingStoreBuffered 2)
-(define NSMiniaturizableWindowMask 4)
-(define NSFullScreenWindowMask      (<< 1 14))
-(define NSOpenGLPFAMultisample       59)
-
-(define NSScreenSaverWindowLevel     1000)
-
 (define _NSInteger _long)
 (define _NSUInteger _ulong)
 (define _NSOpenGLPixelFormatAttribute _uint)
@@ -80,8 +67,8 @@
 
 (tell #:type _int first-string length)
 
-(define W 600)
-(define H 600)
+(define W 640)
+(define H 480)
 
 ;; making my own window
 (define c
@@ -109,9 +96,9 @@
          NSOpenGLPFAPixelBuffer
          NSOpenGLPFAAccelerated
          NSOpenGLPFAMultisample
-         NSOpenGLPFASampleBuffers 2
+         NSOpenGLPFASampleBuffers 1
          NSOpenGLPFASamples 16
-         NSOpenGLPFADepthSize 32
+         NSOpenGLPFADepthSize 64
          NSOpenGLPFAColorSize 24
          NSOpenGLPFASupersample
          0))
@@ -154,31 +141,18 @@
 (define *tex* 2)
 
 (define (my-gl-init)
-  (let ((res *texture*))
-    ;; load textures
-    (init-textures 4)
-    (unless (gl-load-texture *textures*
-                             (list-ref res 2) (list-ref res 0) (list-ref res 1)
-                             GL_NEAREST GL_NEAREST 0)
-      (error "Couldn't load texture"))
-    (unless (gl-load-texture *textures*
-                             (list-ref res 2) (list-ref res 0) (list-ref res 1)
-                             GL_LINEAR GL_LINEAR 1)
-      (error "Couldn't load texture"))
-    (unless (gl-load-texture *textures*
-                             (list-ref res 2) (list-ref res 0) (list-ref res 1)
-                             GL_LINEAR GL_LINEAR_MIPMAP_NEAREST 2)
-      (error "Couldn't load texture"))
-    (unless (gl-load-texture *textures*
-                             (list-ref res 2) (list-ref res 0) (list-ref res 1)
-                             GL_LINEAR GL_LINEAR_MIPMAP_LINEAR 3)
-      (error "Couldn't load texture"))
-    (glShadeModel GL_SMOOTH)
-    (glEnable GL_MULTISAMPLE)
-    (glEnable GL_TEXTURE_2D)
-    (glClearColor 0.0 0.0 0.0 0.0)
-    (glShadeModel GL_FLAT)
-    (glClearDepth 1)))
+  (glEnable GL_MULTISAMPLE)
+  (glEnable GL_LINE_SMOOTH)
+  ;;(glShadeModel GL_SMOOTH)
+  
+  ;;(glEnable GL_TEXTURE_2D)
+  ;;(glEnable GL_BLEND)
+  (glClearColor 0.0 0.0 0.0 0.0)
+  (glEnable GL_POLYGON_SMOOTH)
+  (glHint GL_POLYGON_SMOOTH GL_NICEST)
+  (glShadeModel GL_FLAT)
+  (glClearDepth 1)
+  )
 
 (define xrot 0)
 (define yrot 0)
@@ -188,28 +162,37 @@
 (define y 0.0)
 (define z 0.0)
 
+(define x-obj 0.0)
+(define y-obj 0.0)
+(define z-obj 0.0)
+
 (define (my-gl-draw)
   (glClearColor 0.0 0.0 0.0 1.0)
   (glClear GL_COLOR_BUFFER_BIT) ;;Clear the colour buffer (more buffers later on)  
   (glLoadIdentity) ;; Load the Identity Matrix to reset our drawing locations
-  (gluLookAt x y z 0 0 0 0 1 0)
+  (gluLookAt x y z x-obj y-obj z-obj 0 1 0)  
+  (glColor3f 1.0 1.0 1.0)
+
+  (define size 1.0)
+  (define markers-n 10.0)
+  (define offset 0.2) ;; offset in percent
+  (define marker-size (/ size (+ markers-n (* (- markers-n 1) offset))))
   
-  (glBindTexture GL_TEXTURE_2D (get-texture *tex*))
-  (glBegin GL_QUADS)
-  ;; front
-  (glTexCoord2i 0 1)
-  (glVertex3f -0.5 -0.5 0.0)
-  (glTexCoord2i 1 1)
-  (glVertex3f 0.5 -0.5 0.0)
-  (glTexCoord2i 1 0)
-  (glVertex3f 0.5 0.5 0.0)
-  (glTexCoord2i 0 0)
-  (glVertex3f -0.5 0.5 0.0)
-  (glEnd)
-  ;;(glFlush)
-  ;;(glutWireCube 1.0) ;; Render the primitive
-  ;;(glutSolidCube 1.0) ;; Render the primitive
-  )
+  (glPushMatrix)
+  (glTranslated (- (/ (- size marker-size) 2.0)) (/ (- size marker-size) 2.0) 0.0)
+  (for ([y (in-range 0 markers-n 1)])
+    (define translate-y (* y (+ marker-size (* marker-size offset))))
+    (for ([x (in-range 0 markers-n 1)])
+      (define translate-x (* x (+ marker-size (* marker-size offset))))
+      ;;(glColor3f (random) (random) (random))
+      (glColor3f 1 1 1)
+      (glPushMatrix)
+      (glTranslated translate-x (- translate-y) 0.0)
+      (glutRectangle marker-size) ;; Render the primitive
+      (glPopMatrix)))
+  (glPopMatrix)
+  
+  (glFlush))
 
 
 (define-objc-class my-gl-view NSOpenGLView
@@ -282,13 +265,29 @@
   (glLoadIdentity)		;; Reset The Modelview Matrix
   (tellv glv update))
 
-(change-viewport 0 0 W H 40.0 (/ W H 1.0) 0.1 1000.0)
-(set-z! -100.0)
+(change-viewport 0 0 W H 43.6 (/ W H 1.0) 0.00001 1000.0)
 
 (define (set-camera-position! x-prime y-prime z-prime)
   (set! x x-prime)
   (set! y y-prime)
   (set! z z-prime)
+  (tellv glv update))
+
+(define (set-look-at-position! x-prime y-prime z-prime)
+  (set! x-obj x-prime)
+  (set! y-obj y-prime)
+  (set! z-obj z-prime)
+  (tellv glv update))
+
+(define (randomize-camera)
+  ;; set camera position
+  (set! x (- (* 3.0 (random)) 0.5))
+  (set! y (- (* 3.0 (random)) 0.5))
+  (set! z (+ (* 1.0 (random)) 0.2))
+  ;; set view position
+  (set! x-obj (- (* 1.0 (random)) .5))
+  (set! y-obj (- (* 1.0 (random)) .5))
+  (set! z-obj 0.0)
   (tellv glv update))
 
 (define (increment-camera-position! x-diff y-diff z-diff)
@@ -300,11 +299,11 @@
 (define (compute-fov size distance)
   (/ (* 2.0 180.0 (atan (/ size 2.0) distance)) pi))
 
-(set-camera-position! (random 10) (random 10) (random 5))
-(set-camera-position! 0 2 1.5)
-(change-viewport 0 0 W H 43.6 (/ W H 1.0) 0.1 1000.0)
-
+;;(randomize-camera)
 (set! *tex* 0)
+(set-camera-position! x y z)
+(set-look-at-position! 0 0 0)
+;;(set-camera-position! 0 0 2)
 (set-camera-position! 0 0 1.25)
 
 ;; (define (t)
@@ -314,17 +313,14 @@
 
 ;; (define k (thread t))
 
-;;(increment-camera-position! 0.0 0.0 (sin z))
-
-
-;;(define bm (make-array #:type _ubyte (* W H 4) 0))
 
 (define bm-cv (make-cvector _ubyte (* W H 4)))
 
 (glReadPixels 0 0 W H GL_RGBA GL_UNSIGNED_BYTE bm-cv)
 
 (define bm (list->bytes (cvector->list bm-cv)))
+(define res (opengl->bitmap (rgba->argb bm W H) W H))
 
 (define r (make-bitmap W H))
-(send r set-argb-pixels 0 0 W H (rgba->argb bm W H))
+(send r set-argb-pixels 0 0 W H res)
 (send r save-file "test.png" 'png)

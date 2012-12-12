@@ -23,10 +23,11 @@
   
   ;; Draws a solid cube
   (provide glutSolidCube)
-  (define (glutSolidCube dSize)
+  (define (glutSolidCube dSize (x 0.0) (y 0.0) (z 0.0))
     (define size (* 0.5 dSize))
     (define (V op1 op2 op3) (glVertex3d (op1 size) (op2 size) (op3 size)))
     (define (N a b c) (glNormal3d a b c))
+    (glTranslatef x y z)
     (glBegin GL_QUADS)
     (N 1.0 0.0 0.0) (V + - +) (V + - -) (V + + -) (V + + +)
     (N 0.0 1.0 0.0) (V + + +) (V + + -) (V - + -) (V - + +)
@@ -35,4 +36,16 @@
     (N 0.0 -1.0 0.0) (V - - +) (V - - -) (V + - -) (V + - +)
     (N 0.0 0.0 -1.0) (V - - -) (V - + -) (V + + -) (V + - -)
     (glEnd))
+
+  (provide glutRectangle)
+  (define (glutRectangle dSize)
+    (define size (* 0.5 dSize))
+    (define -size (- size))
+    (glBegin GL_QUADS)
+    (glVertex3f -size -size 0.0)
+    (glVertex3f size -size 0.0)
+    (glVertex3f size size 0.0)
+    (glVertex3f -size size 0.0)
+    (glEnd))
+  
   )

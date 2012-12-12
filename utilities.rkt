@@ -35,6 +35,13 @@
       (bytes-set! argb (+ i 3) (bytes-ref rgba (+ i 2))))
     argb)
 
+  (define (opengl->bitmap bm-bytes W H)
+    (define result (make-bytes (* W H 4)))
+    (for ([line (in-range 0 (* W H 4) (* W 4))])
+      (bytes-copy! result (- (* W H 4) (* W 4) line)
+                   bm-bytes line (+ line (* W 4))))
+    result)
+
 
   (define (bitmap->gl-vector bmp)
     (let* ([dc (send bmp make-dc)]

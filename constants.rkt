@@ -37,5 +37,17 @@
   (define NSOpenGLPFARemotePixelBuffer   91)
   (define NSOpenGLPFAAllowOfflineRenderers 96)
   (define NSOpenGLPFAAcceleratedCompute  97)
-  (define NSOpenGLPFAVirtualScreenCount 128)  
+  (define NSOpenGLPFAVirtualScreenCount 128)
+
+
+  (define (<< a b) (arithmetic-shift a b))
+  (define NSBorderlessWindowMask 0)
+  (define NSUtilityWindowMask (1 . << . 4))
+  (define NSTexturedBackgroundWindowMask (1 . << . 8))
+  (define NSResizableWindowMask 8)
+  (define NSClosableWindowMask 2)
+  (define NSBackingStoreBuffered 2)
+  (define NSMiniaturizableWindowMask 4)
+  (define NSFullScreenWindowMask      (<< 1 14))
+  (define NSScreenSaverWindowLevel     1000)
   )
