@@ -119,18 +119,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Textures
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define markers (map generate-marker (range 0 80)))
-(define bm (make-board (map generate-marker (range 0 100)) 100 100 0.2))
+;;(define markers (map generate-marker (range 0 80)))
+;;(define bm (make-board (map generate-marker (range 0 100)) 100 100 0.2))
 
-(define *textures* '())
+;; (define *textures* '())
 
-(define (init-textures count)
-    (set! *textures* (glGenTextures count)))
+;; (define (init-textures count)
+;;     (set! *textures* (glGenTextures count)))
 
-(define (get-texture ix)
-  (gl-vector-ref *textures* ix))
+;; (define (get-texture ix)
+;;   (gl-vector-ref *textures* ix))
 
-(define *texture* (bitmap->gl-vector bm))
+;; (define *texture* (bitmap->gl-vector bm))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -166,6 +166,8 @@
 (define y-obj 0.0)
 (define z-obj 0.0)
 
+(define markers (list->vector (map generate-marker (range 0 100))))
+
 (define (my-gl-draw)
   (glClearColor 0.0 0.0 0.0 1.0)
   (glClear GL_COLOR_BUFFER_BIT) ;;Clear the colour buffer (more buffers later on)  
@@ -174,24 +176,44 @@
   (glColor3f 1.0 1.0 1.0)
 
   (define size 1.0)
-  (define markers-n 10.0)
+  (define markers-n 10)
   (define offset 0.2) ;; offset in percent
   (define marker-size (/ size (+ markers-n (* (- markers-n 1) offset))))
+  (define tile-size (/ marker-size 7.0))
   
   (glPushMatrix)
-  (glTranslated (- (/ (- size marker-size) 2.0)) (/ (- size marker-size) 2.0) 0.0)
+  ;; (glTranslated (- (/ (- size marker-size) 2.0))
+  ;;               (/ (- size marker-size) 2.0)
+  ;;               0.0)
+  (glTranslated (- (/ (- size tile-size) 2.0))
+                (/ (- size tile-size) 2.0) 0.0)
   (for ([y (in-range 0 markers-n 1)])
     (define translate-y (* y (+ marker-size (* marker-size offset))))
     (for ([x (in-range 0 markers-n 1)])
       (define translate-x (* x (+ marker-size (* marker-size offset))))
-      ;;(glColor3f (random) (random) (random))
-      (glColor3f 1 1 1)
       (glPushMatrix)
       (glTranslated translate-x (- translate-y) 0.0)
-      (glutRectangle marker-size) ;; Render the primitive
-      (glPopMatrix)))
+      ;; get the marker
+      (define marker (vector-ref markers (+ (* y markers-n) x)))
+      (for ([row (in-range 0 7)])
+        (for ([column (in-range 0 7)])
+          (glPushMatrix)
+          (glTranslated (* column tile-size)
+                        (* (- row) tile-size) 0.0)
+          (if (or (zero? row) (zero? column)
+                  (= row 6) (= column 6))
+              (glColor3f 1 1 1)
+              (if (zero? (matrix-ref marker (- row 1) (- column 1)))
+                  (glColor3f 1 1 1)
+                  (glColor3f 0 0 0)))
+          (glutRectangle tile-size) ;; Render the primitive
+          (glPopMatrix)))
+      (glPopMatrix)
+      ))
   (glPopMatrix)
-  
+  ;; (glColor3f 1.0 1.0 1.0)
+  ;; (glTranslated 0.0 0.0 0.0)
+  ;; (glutRectangle 1.0) ;; Render the primitive
   (glFlush))
 
 
@@ -281,9 +303,9 @@
 
 (define (randomize-camera)
   ;; set camera position
-  (set! x (- (* 3.0 (random)) 0.5))
-  (set! y (- (* 3.0 (random)) 0.5))
-  (set! z (+ (* 1.0 (random)) 0.2))
+  (set! x (- (* 2.0 (random)) 0.5))
+  (set! y (- (* 2.0 (random)) 0.5))
+  (set! z (+ (* 0.5 (random)) 0.5))
   ;; set view position
   (set! x-obj (- (* 1.0 (random)) .5))
   (set! y-obj (- (* 1.0 (random)) .5))
