@@ -1,3 +1,5 @@
 *
 !*.rkt
-!*.org
+!*.md
+!images/
+!images/*.png
