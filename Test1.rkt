@@ -1,3 +1,9 @@
+#|
+This code generate a board of fiducial markers.
+The board is placed in a 3D environment at the origin of the coordinate system, and a camera takes pictures of the board from different positions and angles.
+The fiducial markers are generated as in the ArUco library (http://www.uco.es/investiga/grupos/ava/node/26).
+|#
+
 (require ffi/unsafe/objc
          ffi/unsafe
          ffi/unsafe/nsstring
@@ -205,9 +211,9 @@
 (set-look-at-position! 0 0 0)
 (set-camera-position! -0.5 0.5 0.5)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Capture bitmap
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bm-cv (make-cvector _ubyte (* W H 4)))
 (glReadPixels 0 0 W H GL_RGBA GL_UNSIGNED_BYTE bm-cv)
 (define bm (list->bytes (cvector->list bm-cv)))
