@@ -9,17 +9,14 @@ The fiducial markers are generated as in the [ArUco](http://www.uco.es/investiga
 
 ![Example 2](https://raw.github.com/oetr/3D-Marker-Generator/master/images/Example2.png)
 
-
 # Requirements
 You need to have a Mac in order to be able to run this code without modification.
 In this version, Racket calls difectly to MacOS-specific GUI framework by using libffi.
 However, the markers are drawn by using OpenGL, which is platform-independent.
 
-
 # Installation
 Get the latest version of Racket from http://racket-lang.org/.
 You are good to go!
-
 
 # License
 Copyright (c) 2012 Peter Samarin
