@@ -15,7 +15,7 @@ The fiducial markers are generated as in the ArUco library (http://www.uco.es/in
          "utilities.rkt"
          "constants.rkt"
          "geometry.rkt"
-         "ArUco.rkt")
+         "ar-uco.rkt")
 
 (import-class NSWindow NSString NSOpenGLView NSOpenGLPixelFormat NSOpenGLContext)
 

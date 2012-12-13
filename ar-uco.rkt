@@ -1,4 +1,8 @@
-(module ArUco racket
+#|
+The fiducial markers are generated as in the ArUco library written by Rafael Muñoz Salinas (http://www.uco.es/investiga/grupos/ava/node/26).
+|#
+
+(module ar-uco racket
   (require "matrices.rkt"
            racket/draw)
   
@@ -14,7 +18,6 @@
         (if (> (bitwise-and (arithmetic-shift val (- (- 4 x))) 1) 0)
             1
             0))))
-
 
   (define (matrix-rotate a-matrix (direction 'ccw))
     ;; do only ccw rotation for now!
@@ -75,4 +78,4 @@
                           (* col (+ width (* width separator)))))
       (send dc draw-bitmap (draw-marker marker width height) x-offset y-offset))
     bm)
-)
+  )
