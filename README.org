@@ -1,6 +1,6 @@
 This code generate a board of fiducial markers.
 The board is placed in a 3D environment at the origin of the coordinate system, and a camera takes pictures of the board from different positions and angles.
-The fiducial markers are generated as in the ArUco library (http://www.uco.es/investiga/grupos/ava/node/26).
+The fiducial markers are generated as in the [[ArUco][http://www.uco.es/investiga/grupos/ava/node/26]] library.
 
 
 * Requirements
