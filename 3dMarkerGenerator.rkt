@@ -20,12 +20,12 @@ The fiducial markers are generated as in the ArUco library (http://www.uco.es/in
 (import-class NSWindow NSString NSOpenGLView NSOpenGLPixelFormat NSOpenGLContext)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Constants to make the window
+;; Constants to make window and markers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define W 640)
 (define H 480)
 
-;; constants for marker generation
+;; marker constants
 (define size 10.0)    ;; board size
 (define markers-n 10) ;; number of markers
 (define gap 0.2)      ;; gap in percent of the marker size
@@ -53,19 +53,17 @@ The fiducial markers are generated as in the ArUco library (http://www.uco.es/in
 
 (tell window setTitle: #:type _NSString "Fiducial Marker Generator")
 
-(define attributes
-  (array #:type _NSOpenGLPixelFormatAttribute
-         NSOpenGLPFAAllRenderers
-         NSOpenGLPFAPixelBuffer
-         NSOpenGLPFAAccelerated
-         NSOpenGLPFAMultisample
-         NSOpenGLPFASampleBuffers 1
-         NSOpenGLPFASamples 16
-         NSOpenGLPFADepthSize 64
-         NSOpenGLPFAColorSize 24
-         NSOpenGLPFASupersample
-         0))
-
+(define attributes (array #:type _NSOpenGLPixelFormatAttribute
+                          NSOpenGLPFAAllRenderers
+                          NSOpenGLPFAPixelBuffer
+                          NSOpenGLPFAAccelerated
+                          NSOpenGLPFAMultisample
+                          NSOpenGLPFASampleBuffers 1
+                          NSOpenGLPFASamples 16
+                          NSOpenGLPFADepthSize 64
+                          NSOpenGLPFAColorSize 24
+                          NSOpenGLPFASupersample
+                          0))
 
 (define pixFmt (tell (tell NSOpenGLPixelFormat alloc)
                      initWithAttributes: #:type _pointer (array-ptr attributes)))
