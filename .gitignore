@@ -3,3 +3,4 @@
 !*.md
 !images/
 !images/*.png
+!images/*.ai

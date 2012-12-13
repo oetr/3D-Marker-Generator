@@ -5,9 +5,7 @@ This code generates a board of fiducial markers.
 The board is placed in a 3D environment at the origin of the coordinate system, and a camera takes pictures of the board from different positions and angles.
 The fiducial markers are generated as in the [ArUco](http://www.uco.es/investiga/grupos/ava/node/26 "ArUco library") library.
 
-![Example 1](https://raw.github.com/oetr/3D-Marker-Generator/master/images/Example1.png)
-
-![Example 2](https://raw.github.com/oetr/3D-Marker-Generator/master/images/Example2.png)
+![Example 1](https://raw.github.com/oetr/3D-Marker-Generator/master/images/Examples.png)
 
 # Requirements
 You need to have a Mac in order to be able to run this code without modification.
