@@ -42,6 +42,7 @@
 
   (define (<< a b) (arithmetic-shift a b))
   (define NSBorderlessWindowMask 0)
+  (define NSTitledWindowMask (1 . << . 0))
   (define NSUtilityWindowMask (1 . << . 4))
   (define NSTexturedBackgroundWindowMask (1 . << . 8))
   (define NSResizableWindowMask 8)
