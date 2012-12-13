@@ -22,5 +22,5 @@ You are good to go!
 Copyright (c) 2012 Peter Samarin
 
 This code is distributed under the GNU Lesser General Public License (LGPL).
-This means that you can the code into proprietary applications, provided you follow the rules stated in the LGPL.
+This means that you can link the code into proprietary applications, provided you follow the rules stated in the LGPL.
 You can also modify this code; if you distribute a modified version, you must distribute it under the terms of the LGPL, which in particular means that you must release the source code for the modified software.
