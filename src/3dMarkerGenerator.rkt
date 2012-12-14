@@ -59,7 +59,7 @@ The fiducial markers are generated as in the ArUco library (http://www.uco.es/in
                           NSOpenGLPFAAccelerated
                           NSOpenGLPFAMultisample
                           NSOpenGLPFASampleBuffers 1
-                          NSOpenGLPFASamples 16
+                          NSOpenGLPFASamples 2
                           NSOpenGLPFADepthSize 64
                           NSOpenGLPFAColorSize 24
                           NSOpenGLPFASupersample
@@ -143,12 +143,10 @@ The fiducial markers are generated as in the ArUco library (http://www.uco.es/in
 (define-objc-class my-gl-view NSOpenGLView
   (context)
   (- _void (prepareOpenGL)
-     (super-tell prepareOpenGL))
+     (super-tell prepareOpenGL)
+     (my-gl-init))
   (- _void (update)
      (super-tell update)
-     (unless init?
-       (my-gl-init)
-       (set! init? #t))
      (my-gl-draw)
      (glFlush)
      (tellv context flushBuffer)))
@@ -204,10 +202,8 @@ The fiducial markers are generated as in the ArUco library (http://www.uco.es/in
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test data generation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;(randomize-camera)
 (change-viewport 0 0 W H fov (/ W H 1.0) 0.00001 1000.0)
-(set-look-at-position! 0 0 0)
-(set-camera-position! -0.5 0.5 0.5)
+(randomize-camera)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Capture bitmap
